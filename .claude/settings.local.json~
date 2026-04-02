@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(ls -la /home/fenrir/code/stock/*.py)",
+      "Bash(source venv/bin/activate)",
+      "Bash(chmod:*)",
+      "Skill(discord:access)",
+      "Read(//home/fenrir/.claude/**)",
+      "Bash(find ~/.claude -name *.log -o -name log*)",
+      "Bash(bun --version)",
+      "mcp__plugin_discord_discord__reply",
+      "Bash(ls:*)",
+      "Bash(find /home/fenrir/code/stock -type f -name *bbands* -o -name *bollinger*)",
+      "Bash(grep \"\\\\.py$\")",
+      "Bash(grep -E \"\\\\.py$|\\\\.md$\")",
+      "Bash(find /home/fenrir/code/stock/TW -name \"*.py\" -type f ! -path \"*/venv/*\" ! -path \"*/__pycache__/*\" -exec wc -l {} +)",
+      "WebFetch(domain:www.twse.com.tw)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit:*)",
+      "Bash(git:*)",
+      "Bash(pip3 list:*)",
+      "Bash(./venv/bin/python:*)"
+    ]
+  }
+}

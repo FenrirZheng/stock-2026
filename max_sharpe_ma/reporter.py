@@ -1,4 +1,4 @@
-# ma_search/reporter.py
+# max_sharpe_ma/reporter.py
 
 from .backtest import BacktestResult
 from .optimizer import SearchResult

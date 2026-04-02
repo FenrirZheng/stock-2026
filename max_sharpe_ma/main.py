@@ -1,4 +1,4 @@
-# ma_search/main.py
+# max_sharpe_ma/main.py
 
 from .backtest import run_backtest
 from .config import (

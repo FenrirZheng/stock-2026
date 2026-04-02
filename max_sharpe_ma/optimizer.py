@@ -1,4 +1,4 @@
-# ma_search/optimizer.py
+# max_sharpe_ma/optimizer.py
 
 from dataclasses import dataclass, field
 from typing import Callable
