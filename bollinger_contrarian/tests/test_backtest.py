@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from boolean_channel.backtest import BacktestResult, run_backtest
+from bollinger_contrarian.backtest import BacktestResult, run_backtest
 
 
 def _make_df(opens: list[float], closes: list[float]) -> pd.DataFrame:

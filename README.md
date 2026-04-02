@@ -30,6 +30,20 @@ python -m contrarian_strategy.main
 python -m max_sharpe_ma.main
 ```
 
+### bollinger_contrarian — 布林通道逆勢策略
+
+跌到下軌買進的逆勢邏輯：股價觸及布林通道下軌時視為超賣進場，回到中線（SMA）或觸發停損時出場。
+
+- **進場**：收盤價 ≤ 下軌（SMA − N × σ）
+- **出場**：SMA 跌破（收盤 < SMA）或停損（跌幅達 5%）
+- **優化參數**：MA 週期 (20–200)、標準差倍數 (1.0–3.0)
+- **優化目標**：WinRate − λ · max(0, −TotalReturn)，含硬約束（最少 15 筆交易、最大回撤 35%）
+- **預設標的**：00631L.TW（元大台灣50正2）
+
+```bash
+python -m bollinger_contrarian.main
+```
+
 ## 快速開始
 
 ```bash

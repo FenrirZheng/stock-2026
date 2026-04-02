@@ -20,7 +20,7 @@ pip install -r requirements.txt
 pytest                                    # 全部測試
 pytest contrarian_strategy/tests/         # 單一 package
 pytest max_sharpe_ma/tests/
-pytest boolean_channel/tests/
+pytest bollinger_contrarian/tests/
 
 # 執行單一測試
 pytest contrarian_strategy/tests/test_xxx.py::test_function_name -v
@@ -28,7 +28,7 @@ pytest contrarian_strategy/tests/test_xxx.py::test_function_name -v
 # 執行回測
 python -m contrarian_strategy.main
 python -m max_sharpe_ma.main
-python -m boolean_channel.main
+python -m bollinger_contrarian.main
 ```
 
 ## Architecture
@@ -58,7 +58,7 @@ python -m boolean_channel.main
 Bayesian Optimization 搜尋最佳 SMA 週期 (maximize Sharpe Ratio)。
 close > SMA → 持有，含 train/test split + 過擬合檢查。
 
-### boolean_channel
+### bollinger_contrarian
 
 布林通道策略：以 SMA ± N 倍標準差建立通道，搜尋最佳 MA 週期與標準差倍數。
 含 stop-loss、train/test split。

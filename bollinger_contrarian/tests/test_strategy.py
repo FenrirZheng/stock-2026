@@ -1,4 +1,4 @@
-from boolean_channel.strategy import check_entry, check_sma_exit, check_stop_loss
+from bollinger_contrarian.strategy import check_entry, check_sma_exit, check_stop_loss
 
 
 class TestCheckEntry:
