@@ -13,13 +13,14 @@ Python 3.11 · Optuna · yfinance · pandas
 
 ```bash
 # 安裝依賴
-source venv/bin/activate
+source .venv/bin/activate   # 或 venv/bin/activate
 pip install -r requirements.txt
 
 # 執行測試
 pytest                                    # 全部測試
 pytest contrarian_strategy/tests/         # 單一 package
 pytest max_sharpe_ma/tests/
+pytest boolean_channel/tests/
 
 # 執行單一測試
 pytest contrarian_strategy/tests/test_xxx.py::test_function_name -v
@@ -27,6 +28,7 @@ pytest contrarian_strategy/tests/test_xxx.py::test_function_name -v
 # 執行回測
 python -m contrarian_strategy.main
 python -m max_sharpe_ma.main
+python -m boolean_channel.main
 ```
 
 ## Architecture
@@ -35,6 +37,7 @@ python -m max_sharpe_ma.main
 
 ```
 <package>/
+├── __init__.py       # package marker
 ├── config.py         # 參數設定
 ├── data_fetcher.py   # 資料下載 + 指標計算
 ├── strategy.py       # 進出場邏輯
@@ -55,6 +58,12 @@ python -m max_sharpe_ma.main
 Bayesian Optimization 搜尋最佳 SMA 週期 (maximize Sharpe Ratio)。
 close > SMA → 持有，含 train/test split + 過擬合檢查。
 
+### boolean_channel
+
+布林通道策略：以 SMA ± N 倍標準差建立通道，搜尋最佳 MA 週期與標準差倍數。
+含 stop-loss、train/test split。
+
 ## Gotchas
 
 - Package 內使用相對 import，不能直接 `python contrarian_strategy/main.py`，必須用 `python -m`
+- 6854.TW 最早交易資料為 2022-08-19（約該時掛牌上市），START_DATE 設更早也無資料

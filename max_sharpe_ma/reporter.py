@@ -1,6 +1,7 @@
 # max_sharpe_ma/reporter.py
 
 from .backtest import BacktestResult
+from .config import TICKER
 from .optimizer import SearchResult
 
 
@@ -20,7 +21,7 @@ def print_report(
     """印出完整比較報告。"""
     print()
     print("══════════════════════════════════════════════════")
-    print("  MA Crossover Period Search — 00635U.TW")
+    print(f"  MA Crossover Period Search — {TICKER}")
     print("══════════════════════════════════════════════════")
 
     print()
