@@ -26,18 +26,15 @@ def main():
 
     p = opt_result.best_params
     print(f"最佳參數: x={p['x']}, m={p['m']:.2f}, n={p['n']}, "
-          f"k={p['k']:.2f}, t={p['t']:.2f}, "
-          f"rsi<{p['rsi_threshold']:.1f}")
+          f"k={p['k']:.2f}, t={p['t']:.2f}")
 
     print("\n以最佳參數回測訓練集...")
     train_result = run_backtest(
-        train_df, p["x"], p["m"], p["n"], p["k"], p["t"],
-        p["rsi_threshold"])
+        train_df, p["x"], p["m"], p["n"], p["k"], p["t"])
 
     print("以最佳參數回測測試集...")
     test_result = run_backtest(
-        test_df, p["x"], p["m"], p["n"], p["k"], p["t"],
-        p["rsi_threshold"])
+        test_df, p["x"], p["m"], p["n"], p["k"], p["t"])
 
     train_start = str(train_df.index[0].date())
     train_end = str(train_df.index[-1].date())

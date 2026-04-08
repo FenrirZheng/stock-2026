@@ -1,8 +1,7 @@
 from .backtest import run_backtest
 from .config import (
     END_DATE,
-    INIT_POINTS,
-    N_ITER,
+    N_TRIALS,
     START_DATE,
     TICKER,
     TRAIN_RATIO,
@@ -20,24 +19,24 @@ def main():
     train_df, test_df = split_train_test(df, TRAIN_RATIO)
     print(f"訓練集: {len(train_df)} 筆, 測試集: {len(test_df)} 筆")
 
-    print(f"\n執行 Bayesian Optimization "
-          f"(init={INIT_POINTS}, iter={N_ITER})...")
+    print(f"\n執行 Optuna TPE Optimization (trials={N_TRIALS})...")
     opt_result = run_optimization(train_df)
 
     p = opt_result.best_params
-    print(f"最佳參數: x={p['x']}, m={p['m']:.2f}, n={p['n']}, "
-          f"k={p['k']:.2f}, t={p['t']:.2f}, "
-          f"rsi<{p['rsi_threshold']:.1f}")
+    print(f"最佳參數: ma={p['ma_period']}, dip={p['dip_pct']:.2f}%, "
+          f"rsi<{p['rsi_threshold']:.1f}, timeout={p['timeout_days']}, "
+          f"hard_stop={p['hard_stop_pct']:.2f}%, "
+          f"trail={p['trail_stop_pct']:.2f}%")
 
     print("\n以最佳參數回測訓練集...")
     train_result = run_backtest(
-        train_df, p["x"], p["m"], p["n"], p["k"], p["t"],
-        p["rsi_threshold"])
+        train_df, p["ma_period"], p["dip_pct"], p["rsi_threshold"],
+        p["timeout_days"], p["hard_stop_pct"], p["trail_stop_pct"])
 
     print("以最佳參數回測測試集...")
     test_result = run_backtest(
-        test_df, p["x"], p["m"], p["n"], p["k"], p["t"],
-        p["rsi_threshold"])
+        test_df, p["ma_period"], p["dip_pct"], p["rsi_threshold"],
+        p["timeout_days"], p["hard_stop_pct"], p["trail_stop_pct"])
 
     train_start = str(train_df.index[0].date())
     train_end = str(train_df.index[-1].date())

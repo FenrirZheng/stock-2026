@@ -3,9 +3,9 @@ from .config import (
     END_DATE,
     INIT_POINTS,
     N_ITER,
+    SPLIT_DATE,
     START_DATE,
     TICKER,
-    TRAIN_RATIO,
 )
 from .data_fetcher import fetch_stock_data, split_train_test
 from .optimizer import run_optimization
@@ -17,7 +17,7 @@ def main():
     df = fetch_stock_data(TICKER, START_DATE, END_DATE)
     print(f"取得 {len(df)} 筆交易日資料")
 
-    train_df, test_df = split_train_test(df, TRAIN_RATIO)
+    train_df, test_df = split_train_test(df, SPLIT_DATE)
     print(f"訓練集: {len(train_df)} 筆, 測試集: {len(test_df)} 筆")
 
     print(f"\n執行 Bayesian Optimization "
@@ -27,7 +27,7 @@ def main():
     p = opt_result.best_params
     print(f"最佳參數: x={p['x']}, m={p['m']:.2f}, n={p['n']}, "
           f"k={p['k']:.2f}, t={p['t']:.2f}, "
-          f"rsi<{p['rsi_threshold']:.1f}")
+          f"rsi_threshold={p['rsi_threshold']:.2f}")
 
     print("\n以最佳參數回測訓練集...")
     train_result = run_backtest(

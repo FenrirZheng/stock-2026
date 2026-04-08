@@ -5,14 +5,13 @@ import pandas as pd
 
 @dataclass
 class Trade:
-    signal_date: str         # 產生訊號的日期（前一日 Close 觸發）
-    entry_date: str          # 實際進場日（隔日 Open）
-    entry_price: float       # 隔日 Open 價
+    entry_price: float
+    entry_day: int       # DataFrame 中的 row index
+    entry_date: str
     exit_price: float
     exit_day: int
     exit_date: str
     exit_reason: str
-    entry_day: int
 
 
 def run_trades(df: pd.DataFrame, x: int, m: float, n: int,
@@ -20,10 +19,7 @@ def run_trades(df: pd.DataFrame, x: int, m: float, n: int,
     """
     均線回跌買進策略（狀態機）。
 
-    進場（隔日 Open，修正 look-ahead bias）：
-      前一日 Close < SMA(x) × (1 - m/100) 且 RSI < rsi_threshold
-      → 隔日以 Open 價進場
-
+    進場：Close < SMA(x) × (1 - m/100) 且 RSI < rsi_threshold
     出場優先順序：
       1. 固定止損  Close < entry_price × (1 - k/100)
       2. Trailing Stop  Close < peak_price × (1 - t/100)
@@ -31,43 +27,30 @@ def run_trades(df: pd.DataFrame, x: int, m: float, n: int,
       4. 突破後跌破均線  曾 Close >= SMA 且今日 Close < SMA
     """
     closes = df["Close"].values
-    opens = df["Open"].values
     sma = df["SMA"].values
     rsi = df["RSI"].values
     dates = df.index
     trades: list[Trade] = []
-    num = len(closes)
 
     in_position = False
-    pending_entry = False
-    signal_idx = -1
     entry_price = 0.0
     entry_idx = 0
     peak_price = 0.0
     ever_crossed_ma = False
 
-    for i in range(num):
+    for i in range(len(closes)):
         close = float(closes[i])
-        open_price = float(opens[i])
         ma = float(sma[i])
-        r = float(rsi[i])
-
-        # --- 隔日進場執行 ---
-        if pending_entry and not in_position:
-            in_position = True
-            entry_price = open_price
-            entry_idx = i
-            peak_price = open_price
-            ever_crossed_ma = False
-            pending_entry = False
+        rsi_val = float(rsi[i])
 
         if not in_position:
-            # --- 產生進場訊號（隔日才執行） ---
-            if (close < ma * (1 - m / 100)
-                    and r < rsi_threshold
-                    and i < num - 1):
-                pending_entry = True
-                signal_idx = i
+            # --- 等待進場 ---
+            if close < ma * (1 - m / 100) and rsi_val < rsi_threshold:
+                in_position = True
+                entry_price = close
+                entry_idx = i
+                peak_price = close
+                ever_crossed_ma = False
             continue
 
         # --- 持倉中 ---
@@ -91,7 +74,6 @@ def run_trades(df: pd.DataFrame, x: int, m: float, n: int,
 
         if exit_reason:
             trades.append(Trade(
-                signal_date=str(dates[signal_idx].date()),
                 entry_price=entry_price,
                 entry_day=entry_idx,
                 entry_date=str(dates[entry_idx].date()),

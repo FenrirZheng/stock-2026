@@ -23,9 +23,9 @@ class OptimizeResult:
 
 
 def create_objective(df: pd.DataFrame):
-    """建立 objective 函數，以 Sharpe Ratio 為優化目標。"""
+    """建立 objective 函數，DataFrame 透過 closure 傳入。"""
 
-    def objective(x, m, n, k, t, rsi_threshold):
+    def objective(x, m, n, k, t):
         x_int = int(round(x))
         n_int = int(round(n))
 
@@ -33,7 +33,7 @@ def create_objective(df: pd.DataFrame):
         if t >= k:
             return PENALTY_SCORE
 
-        result = run_backtest(df, x_int, m, n_int, k, t, rsi_threshold)
+        result = run_backtest(df, x_int, m, n_int, k, t)
 
         if result.n_trades < MIN_TRADES:
             return PENALTY_SCORE
@@ -41,7 +41,7 @@ def create_objective(df: pd.DataFrame):
         if result.max_drawdown >= MAX_DRAWDOWN_LIMIT:
             return PENALTY_SCORE
 
-        return result.sharpe_ratio
+        return result.score
 
     return objective
 

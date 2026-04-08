@@ -24,17 +24,17 @@ def fetch_stock_data(ticker: str, start: str, end: str) -> pd.DataFrame:
     return df
 
 
-def add_indicators(df: pd.DataFrame, period: int) -> pd.DataFrame:
-    """在 DataFrame 加入 SMA 與 RSI 欄位，並移除 NaN 列。"""
+def add_indicators(df: pd.DataFrame, ma_period: int) -> pd.DataFrame:
+    """加入 SMA 與 RSI 指標，移除前段 NaN 列。"""
     df = df.copy()
-    df["SMA"] = df["Close"].rolling(period).mean()
+    df["SMA"] = df["Close"].rolling(ma_period).mean()
     df["RSI"] = _compute_rsi(df["Close"], RSI_PERIOD)
     df = df.dropna(subset=["SMA", "RSI"])
     return df
 
 
 def _compute_rsi(series: pd.Series, period: int) -> pd.Series:
-    """用 EMA 平滑法計算 RSI（Wilder 定義）。"""
+    """用 EMA 平滑法計算 RSI。"""
     delta = series.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)

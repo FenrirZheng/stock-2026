@@ -1,8 +1,17 @@
 import pandas as pd
 
-from .backtest import BacktestResult, compute_trade_return
+from .backtest import BacktestResult
 from .config import TICKER
 from .optimizer import OptimizeResult
+
+
+def compute_buy_and_hold(df: pd.DataFrame) -> float:
+    """計算同期 Buy & Hold 報酬率。"""
+    if len(df) < 2:
+        return 0.0
+    first_close = float(df["Close"].iloc[0])
+    last_close = float(df["Close"].iloc[-1])
+    return (last_close - first_close) / first_close
 
 
 def print_report(
@@ -23,7 +32,7 @@ def print_report(
 
     print()
     print("══════════════════════════════════════════════════")
-    print(f"  MA Dip-Buy Strategy — {TICKER}")
+    print(f"  MA Dip-Buy LVL Strategy — {TICKER}")
     print("══════════════════════════════════════════════════")
 
     print()
@@ -33,12 +42,12 @@ def print_report(
 
     print()
     print("── 最佳參數 ──")
-    print(f"  MA 週期 (x)           : {p['x']}")
-    print(f"  買進觸發 (m)          : {p['m']:.2f}%")
-    print(f"  RSI 門檻              : {p['rsi_threshold']:.1f}")
-    print(f"  未突破超時天數 (n)    : {p['n']}")
-    print(f"  固定止損 (k)          : {p['k']:.2f}%")
-    print(f"  Trailing Stop (t)     : {p['t']:.2f}%")
+    print(f"  MA 週期              : {p['ma_period']}")
+    print(f"  買進觸發 (dip_pct)   : {p['dip_pct']:.2f}%")
+    print(f"  RSI 門檻             : {p['rsi_threshold']:.1f}")
+    print(f"  未突破超時天數       : {p['timeout_days']}")
+    print(f"  固定止損 (hard_stop) : {p['hard_stop_pct']:.2f}%")
+    print(f"  Trailing Stop        : {p['trail_stop_pct']:.2f}%")
 
     print()
     print("── 訓練集績效 ──")
@@ -48,14 +57,21 @@ def print_report(
     print("── 測試集績效（Out-of-Sample）──")
     _print_metrics(test_result)
 
+    # Buy & Hold 對比
+    if train_df is not None and test_df is not None:
+        _print_benchmark(train_result, test_result, train_df, test_df)
+
     _print_overfitting_check(train_result, test_result)
     _print_exit_breakdown(train_result, "訓練集")
     _print_exit_breakdown(test_result, "測試集")
 
     if train_df is not None:
-        _print_trade_details(train_result, train_df, "訓練集")
+        _print_trade_details(train_result, "訓練集")
     if test_df is not None:
-        _print_trade_details(test_result, test_df, "測試集")
+        _print_trade_details(test_result, "測試集")
+
+    if opt_result.param_importance:
+        _print_param_importance(opt_result.param_importance)
 
     _print_convergence(opt_result)
 
@@ -67,9 +83,33 @@ def _print_metrics(result: BacktestResult) -> None:
     print(f"  交易筆數              : {result.n_trades}")
     print(f"  勝率                  : {result.win_rate:.2%}")
     print(f"  平均報酬              : {result.mean_return:.4%}")
-    print(f"  Sharpe Ratio          : {result.sharpe_ratio:.4f}")
     print(f"  總報酬                : {result.total_return:.2%}")
+    print(f"  年化報酬              : {result.annualized_return:.2%}")
+    print(f"  年化波動度            : {result.annualized_volatility:.2%}")
+    print(f"  Sharpe Ratio          : {result.sharpe_ratio:.4f}")
+    print(f"  Profit Factor         : {result.profit_factor:.2f}")
     print(f"  最大回撤（日頻）      : {result.max_drawdown:.2%}")
+    print(f"  Exposure Ratio        : {result.exposure_ratio:.2%}")
+
+
+def _print_benchmark(
+    train_result: BacktestResult,
+    test_result: BacktestResult,
+    train_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+) -> None:
+    train_bh = compute_buy_and_hold(train_df)
+    test_bh = compute_buy_and_hold(test_df)
+
+    print()
+    print("── Buy & Hold 對比 ──")
+    print(f"  {'':20s}  {'策略':>10s}  {'B&H':>10s}  {'超額':>10s}")
+    print(f"  {'訓練集':20s}  {train_result.total_return:>+10.2%}"
+          f"  {train_bh:>+10.2%}"
+          f"  {train_result.total_return - train_bh:>+10.2%}")
+    print(f"  {'測試集':20s}  {test_result.total_return:>+10.2%}"
+          f"  {test_bh:>+10.2%}"
+          f"  {test_result.total_return - test_bh:>+10.2%}")
 
 
 def _print_overfitting_check(
@@ -105,9 +145,7 @@ def _print_exit_breakdown(result: BacktestResult, label: str) -> None:
         print(f"  {reason:<20s}: {count:>4d} ({pct:.1%})")
 
 
-def _print_trade_details(
-    result: BacktestResult, df: pd.DataFrame, label: str
-) -> None:
+def _print_trade_details(result: BacktestResult, label: str) -> None:
     if result.n_trades == 0:
         return
     print()
@@ -121,26 +159,37 @@ def _print_trade_details(
     for i, (tr, ret) in enumerate(
         zip(result.trades, result.returns), 1
     ):
-        days_held = tr.exit_day - tr.entry_day
         print(f"  {i:>3d}  {tr.signal_date:>12s}  {tr.entry_date:>12s}"
               f"  {tr.entry_price:>9.2f}  "
-              f"{tr.exit_date:>12s}  {tr.exit_price:>9.2f}  {days_held:>4d}  "
+              f"{tr.exit_date:>12s}  {tr.exit_price:>9.2f}  {tr.days_held:>4d}  "
               f"{ret:>+8.2%}  {tr.exit_reason}")
+
+
+def _print_param_importance(importance: dict[str, float]) -> None:
+    print()
+    print("── 參數重要度（fANOVA）──")
+    for param, value in sorted(importance.items(), key=lambda x: -x[1]):
+        bar = "█" * int(value * 40)
+        print(f"  {param:<20s}: {value:.3f}  {bar}")
 
 
 def _print_convergence(opt_result: OptimizeResult) -> None:
     print()
     print("── 優化收斂 ──")
-    iterations = opt_result.all_iterations
+    trials = opt_result.all_trials
+    if not trials:
+        print("  （無完成的試驗）")
+        return
+
     best_so_far = float("-inf")
-    checkpoints = [5, 10, 20, 40, 60, 80, 100, 120]
-    print(f"  {'Iter':>6s}    {'Best Sharpe':>12s}")
+    checkpoints = [5, 10, 20, 40, 60, 80, 100, 150, 200]
+    print(f"  {'Trial':>6s}    {'Best Sharpe':>12s}")
     print(f"  {'─' * 6}    {'─' * 12}")
-    for i, item in enumerate(iterations, 1):
+    for i, item in enumerate(trials, 1):
         if item["score"] > best_so_far:
             best_so_far = item["score"]
         if i in checkpoints:
             print(f"  {i:>6d}    {best_so_far:>12.4f}")
-    total = len(iterations)
+    total = len(trials)
     if total not in checkpoints:
         print(f"  {total:>6d}    {best_so_far:>12.4f}")

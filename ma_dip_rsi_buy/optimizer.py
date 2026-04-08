@@ -1,5 +1,11 @@
+import os
+
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 from bayes_opt import BayesianOptimization
 
@@ -23,7 +29,7 @@ class OptimizeResult:
 
 
 def create_objective(df: pd.DataFrame):
-    """建立 objective 函數，以 Sharpe Ratio 為優化目標。"""
+    """建立 objective 函數，DataFrame 透過 closure 傳入。"""
 
     def objective(x, m, n, k, t, rsi_threshold):
         x_int = int(round(x))
@@ -41,7 +47,7 @@ def create_objective(df: pd.DataFrame):
         if result.max_drawdown >= MAX_DRAWDOWN_LIMIT:
             return PENALTY_SCORE
 
-        return result.sharpe_ratio
+        return result.score
 
     return objective
 
@@ -54,6 +60,7 @@ def run_optimization(
     verbose: int = 0,
 ) -> OptimizeResult:
     """執行 Bayesian Optimization，回傳最佳參數與歷程。"""
+    np.random.seed(random_state)
     optimizer = BayesianOptimization(
         f=create_objective(df),
         pbounds=PBOUNDS,

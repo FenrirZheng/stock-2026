@@ -35,7 +35,6 @@ def print_report(
     print("── 最佳參數 ──")
     print(f"  MA 週期 (x)           : {p['x']}")
     print(f"  買進觸發 (m)          : {p['m']:.2f}%")
-    print(f"  RSI 門檻              : {p['rsi_threshold']:.1f}")
     print(f"  未突破超時天數 (n)    : {p['n']}")
     print(f"  固定止損 (k)          : {p['k']:.2f}%")
     print(f"  Trailing Stop (t)     : {p['t']:.2f}%")
@@ -67,9 +66,9 @@ def _print_metrics(result: BacktestResult) -> None:
     print(f"  交易筆數              : {result.n_trades}")
     print(f"  勝率                  : {result.win_rate:.2%}")
     print(f"  平均報酬              : {result.mean_return:.4%}")
-    print(f"  Sharpe Ratio          : {result.sharpe_ratio:.4f}")
+    print(f"  Score (勝率×平均報酬) : {result.score:.6f}")
     print(f"  總報酬                : {result.total_return:.2%}")
-    print(f"  最大回撤（日頻）      : {result.max_drawdown:.2%}")
+    print(f"  最大回撤              : {result.max_drawdown:.2%}")
 
 
 def _print_overfitting_check(
@@ -77,16 +76,13 @@ def _print_overfitting_check(
 ) -> None:
     print()
     print("── 過擬合檢查 ──")
-    sharpe_gap = train.sharpe_ratio - test.sharpe_ratio
+    score_gap = train.score - test.score
     wr_gap = train.win_rate - test.win_rate
     ret_gap = train.mean_return - test.mean_return
-    print(f"  Sharpe gap (Train-Test)    : {sharpe_gap:+.4f}")
+    print(f"  Score gap (Train-Test)     : {score_gap:+.6f}")
     print(f"  勝率 gap                   : {wr_gap:+.2%}")
     print(f"  平均報酬 gap               : {ret_gap:+.4%}")
-    if test.sharpe_ratio > 0 and (
-        train.sharpe_ratio == 0
-        or sharpe_gap / train.sharpe_ratio < 0.3
-    ):
+    if test.score > 0 and score_gap / train.score < 0.3:
         print("  → 測試集表現尚可，過擬合風險較低")
     else:
         print("  → ⚠ 測試集衰退明顯，可能過擬合")
@@ -112,18 +108,17 @@ def _print_trade_details(
         return
     print()
     print(f"── 交易明細（{label}）──")
-    print(f"  {'#':>3s}  {'訊號日':>12s}  {'進場日':>12s}  {'進場價':>9s}  "
+    print(f"  {'#':>3s}  {'進場日':>12s}  {'進場價':>9s}  "
           f"{'出場日':>12s}  {'出場價':>9s}  {'天數':>4s}  "
           f"{'報酬%':>8s}  {'出場原因'}")
-    print(f"  {'─'*3}  {'─'*12}  {'─'*12}  {'─'*9}  "
+    print(f"  {'─'*3}  {'─'*12}  {'─'*9}  "
           f"{'─'*12}  {'─'*9}  {'─'*4}  "
           f"{'─'*8}  {'─'*12}")
     for i, (tr, ret) in enumerate(
         zip(result.trades, result.returns), 1
     ):
         days_held = tr.exit_day - tr.entry_day
-        print(f"  {i:>3d}  {tr.signal_date:>12s}  {tr.entry_date:>12s}"
-              f"  {tr.entry_price:>9.2f}  "
+        print(f"  {i:>3d}  {tr.entry_date:>12s}  {tr.entry_price:>9.2f}  "
               f"{tr.exit_date:>12s}  {tr.exit_price:>9.2f}  {days_held:>4d}  "
               f"{ret:>+8.2%}  {tr.exit_reason}")
 
@@ -134,13 +129,13 @@ def _print_convergence(opt_result: OptimizeResult) -> None:
     iterations = opt_result.all_iterations
     best_so_far = float("-inf")
     checkpoints = [5, 10, 20, 40, 60, 80, 100, 120]
-    print(f"  {'Iter':>6s}    {'Best Sharpe':>12s}")
+    print(f"  {'Iter':>6s}    {'Best Score':>12s}")
     print(f"  {'─' * 6}    {'─' * 12}")
     for i, item in enumerate(iterations, 1):
         if item["score"] > best_so_far:
             best_so_far = item["score"]
         if i in checkpoints:
-            print(f"  {i:>6d}    {best_so_far:>12.4f}")
+            print(f"  {i:>6d}    {best_so_far:>12.6f}")
     total = len(iterations)
     if total not in checkpoints:
-        print(f"  {total:>6d}    {best_so_far:>12.4f}")
+        print(f"  {total:>6d}    {best_so_far:>12.6f}")
